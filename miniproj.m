@@ -19,14 +19,14 @@ while ~isDone(v)
         pasttracks = BBOX;
     end
     overlapRatio = bboxOverlapRatio(pasttracks, nowtracks);
-    % if any ratio > .9, take column # which indicates nowtracks
-    detecttrack = overlapRatio > 0.9;
+    % if any ratio > .5, take column # which indicates nowtracks
+    detecttrack = overlapRatio > 0.5;
     trackindex = any(detecttrack);
 %     if sum(trackindex) > 0
-        pasttracks = [];
+    pasttracks = [];
         for i = 1:sum(trackindex)
             if trackindex(i) == 1
-                pasttracks = [BBOX(i, :)] ;
+                pasttracks = [pasttracks; BBOX(i, :)] ;
             end
         end
 %     end
