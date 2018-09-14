@@ -3,7 +3,7 @@ v = vision.VideoFileReader('carfootage-short.mov'); % read footage
 detector = vision.ForegroundDetector('NumGaussians', 3, ...
     'NumTrainingFrames', 150); % creates foreground mask
 blob = vision.BlobAnalysis('AreaOutputPort', false, ...
-     'BoundingBoxOutputPort', true, 'CentroidOutputPort', true, ...
+     'BoundingBoxOutputPort', true, 'CentroidOutputPort', false, ...
      'MinimumBlobArea', 3500); % analyzes connected regions in the mask
 pasttracks = []; % initialize matrix of tracks
 numcars = 0; % initialize counter
@@ -13,20 +13,20 @@ while ~isDone(v)
     foreground = detector(frame);
     foregroundfilt = bwareaopen(foreground, 500); % removes noise based
     % on size
-    [CENTROID, BBOX] = step(blob, foregroundfilt);
+    [BBOX] = step(blob, foregroundfilt);
     nowtracks = BBOX;
     if isempty(pasttracks) == 1
         pasttracks = BBOX;
     end
     overlapRatio = bboxOverlapRatio(pasttracks, nowtracks);
-    % if any ratio > .8, take column # which indicates nowtracks
-    detecttrack = overlapRatio > 0.1;
+    % if any ratio > .9, take column # which indicates nowtracks
+    detecttrack = overlapRatio > 0.9;
     trackindex = any(detecttrack);
 %     if sum(trackindex) > 0
         pasttracks = [];
         for i = 1:sum(trackindex)
             if trackindex(i) == 1
-                pasttracks = [pasttracks; BBOX(i, :)] ;
+                pasttracks = [BBOX(i, :)] ;
             end
         end
 %     end
