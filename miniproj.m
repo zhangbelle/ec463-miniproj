@@ -1,26 +1,43 @@
 % function numcars = cardetext(v)
-v = vision.VideoFileReader('carfootage.mp4'); % read footage
+v = vision.VideoFileReader('carfootage-short.mov'); % read footage
 detector = vision.ForegroundDetector('NumGaussians', 3, ...
-    'NumTrainingFrames', 100); % creates foreground mask
+    'NumTrainingFrames', 150); % creates foreground mask
 blob = vision.BlobAnalysis('AreaOutputPort', false, ...
      'BoundingBoxOutputPort', true, 'CentroidOutputPort', true, ...
-     'MinimumBlobArea', 70); % analyzes connected regions in the mask
+     'MinimumBlobArea', 3500); % analyzes connected regions in the mask
+pasttracks = []; % initialize matrix of tracks
 numcars = 0; % initialize counter
 videoPlayer = vision.VideoPlayer();
 while ~isDone(v)
     frame = v();
     foreground = detector(frame);
-%     bbox = blob(foreground);
-    [CENTROID, BBOX] = step(blob, foreground);
+    foregroundfilt = bwareaopen(foreground, 500); % removes noise based
+    % on size
+    [CENTROID, BBOX] = step(blob, foregroundfilt);
+    nowtracks = BBOX;
+    if isempty(pasttracks) == 1
+        pasttracks = BBOX;
+    end
+    overlapRatio = bboxOverlapRatio(pasttracks, nowtracks);
+    % if any ratio > .8, take column # which indicates nowtracks
+    detecttrack = overlapRatio > 0.1;
+    trackindex = any(detecttrack);
+%     if sum(trackindex) > 0
+        pasttracks = [];
+        for i = 1:sum(trackindex)
+            if trackindex(i) == 1
+                pasttracks = [pasttracks; BBOX(i, :)] ;
+            end
+        end
+%     end
+    losttracks = any(trackindex == 0);
+    numcars = numcars + sum(losttracks);
     shapeInserter = vision.ShapeInserter('BorderColor', 'White');
     out = shapeInserter(frame, BBOX);
     videoPlayer(out);
     % step function somewhere?
 end
 % Will need to adjust inputs from Raspberry Pi Camera
-% A lot of this code is just taken from the Matlab site so we're gonna
-% have to shake it up a bit to make it our own thing
-% NEED TO CLEAN NOISE FROM DETECTION!
-% Car counter, will utilize the centroid output from blob analysis since
-% that counts blob. Tracking blob's from creation to disappearance will
-% +1 counter
+% Need to perfect a cleaning method, false detections high, cleaning noise
+% dependent on size which is not versatile
+% Seriously need to debug tracking
